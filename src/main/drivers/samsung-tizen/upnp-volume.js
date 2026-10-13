@@ -1,6 +1,6 @@
 // Volumen exacto por UPnP RenderingControl (implementa TvVolumePort).
 //   http://IP:9197/upnp/control/RenderingControl1  (GetVolume/SetVolume, GetMute/SetMute)
-const { request } = require('../net/http-client');
+const { request } = require('../../adapters/net/http-client');
 
 const SERVICE = 'urn:schemas-upnp-org:service:RenderingControl:1';
 

@@ -2,6 +2,21 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versionado [SemVer](https://semver.org/lang/es/).
 
+## [Sin publicar]
+
+### Agregado
+- Modelo de **capacidades** y **drivers por marca** (`src/main/drivers/`): Samsung Tizen y Philips WiZ son
+  los primeros drivers; el registro valida el contrato de cada uno al iniciar. Guía en docs/drivers.md.
+- `DeviceManager`: dispositivos configurados como lista, descubrimiento por tipo de dispositivo.
+- La luz WiZ se descubre en las subredes de la PC (ya no depende de conocer la IP de la TV).
+- Teclas del control normalizadas (`up`, `ok`, `volume-up`…), traducidas por cada driver.
+
+### Cambiado
+- Configuración v2: `devices[]` con driver, ajustes y secretos por dispositivo (migración automática
+  desde v1 y desde Hub TV). Todo lo que esté en `secrets` se guarda cifrado.
+- Los servicios de TV, luz y modo ambiente trabajan con capacidades, sin conocer la marca; una función que
+  el dispositivo no soporta se informa con un mensaje claro.
+
 ## [1.0.0] — 2026-10-13
 
 Primera versión estable. La app pasa a llamarse **Ambi** (antes "Hub TV").

@@ -3,7 +3,7 @@
 //   GET  http://IP:8001/api/v2/applications/<id>   → {running, visible}; 404 si no está instalada
 //   POST https://IP:8002/api/v2/applications/<id>  → abre la app (en este modelo, el POST por HTTP
 //        al 8001 corta la conexión y `ed.apps.launch` por WebSocket se ignora)
-const { request, parseJson } = require('../net/http-client');
+const { request, parseJson } = require('../../adapters/net/http-client');
 
 const APP_ID = /^[\w.]{3,40}$/;
 

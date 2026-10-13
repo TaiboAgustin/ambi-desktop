@@ -1,9 +1,10 @@
 // Tests del dominio (código puro).
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { describeModel, parseDeviceInfo } = require('../src/main/domain/tv-model');
+const { describeModel, parseDeviceInfo } = require('../src/main/drivers/samsung-tizen/model');
 const { HdmiCycle } = require('../src/main/domain/input-policy');
-const { normalizePilot, lightCommand, dimmingFor, restoreCommands } = require('../src/main/domain/light');
+const { lightCommand, dimmingFor, restoreCommands } = require('../src/main/domain/light');
+const { normalizePilot } = require('../src/main/drivers/wiz');
 const V = require('../src/main/domain/validation');
 const { dominant } = require('../src/shared/color');
 
@@ -64,12 +65,12 @@ test('dimmingFor respeta el mínimo y el máximo elegido', () => {
 
 test('restoreCommands devuelve la lámpara a su estado previo', () => {
   assert.deepEqual(restoreCommands(null), []);
-  assert.deepEqual(restoreCommands({ state: false }), [{ state: false }]);
+  assert.deepEqual(restoreCommands({ on: false }), [{ state: false }]);
   // Apagada: recupera también su tono sin encenderse.
-  assert.deepEqual(restoreCommands({ state: false, temp: 2700, dimming: 100 }), [{ state: false, temp: 2700, dimming: 100 }]);
-  assert.deepEqual(restoreCommands({ state: true, sceneId: 11, dimming: 100 }), [{ state: true, sceneId: 11, dimming: 100 }]);
-  assert.deepEqual(restoreCommands({ state: true, temp: 2700, dimming: 50 }), [{ state: true, temp: 2700, dimming: 50 }]);
-  assert.deepEqual(restoreCommands({ state: true, r: 1, g: 2, b: 3, dimming: 20 }), [{ state: true, r: 1, g: 2, b: 3, dimming: 20 }]);
+  assert.deepEqual(restoreCommands({ on: false, temp: 2700, dimming: 100 }), [{ state: false, temp: 2700, dimming: 100 }]);
+  assert.deepEqual(restoreCommands({ on: true, sceneId: 11, dimming: 100 }), [{ state: true, sceneId: 11, dimming: 100 }]);
+  assert.deepEqual(restoreCommands({ on: true, temp: 2700, dimming: 50 }), [{ state: true, temp: 2700, dimming: 50 }]);
+  assert.deepEqual(restoreCommands({ on: true, rgb: [1, 2, 3], dimming: 20 }), [{ state: true, r: 1, g: 2, b: 3, dimming: 20 }]);
 });
 
 test('validaciones de ajustes: lista blanca y formatos', () => {
@@ -79,8 +80,9 @@ test('validaciones de ajustes: lista blanca y formatos', () => {
   assert.throws(() => V.settingsPatch({ ip: '300.1.1.1' }), V.ValidationError);
   assert.throws(() => V.settingsPatch({ mac: 'zz' }), V.ValidationError);
   assert.throws(() => V.settingsPatch({ ps5Hdmi: 9 }), V.ValidationError);
-  assert.ok(V.isKeyCode('KEY_VOLUP'));
-  assert.ok(!V.isKeyCode('KEY_"; rm'));
+  assert.ok(V.isRemoteKey('volume-up') && V.isRemoteKey('7'));
+  assert.ok(!V.isRemoteKey('KEY_VOLUP') && !V.isRemoteKey('__proto__'));
+  assert.ok(V.isKeyAction('press') && !V.isKeyAction('Click'));
   assert.ok(V.isAppName('netflix') && !V.isAppName('__proto__'));
   assert.ok(V.isScreenId('screen:0:0') && !V.isScreenId('window:1'));
 });

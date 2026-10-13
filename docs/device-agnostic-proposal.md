@@ -1,6 +1,7 @@
 # Propuesta: Ambi agnóstico a marcas y dispositivos
 
-> Estado: **propuesta para discutir** (no implementada). Objetivo: que cualquier persona pueda usar Ambi
+> Estado: **etapa 1 implementada** (modelo de capacidades, registro de drivers, Samsung y WiZ como
+> drivers, configuración con lista de dispositivos). Guía práctica: [drivers.md](drivers.md). Objetivo: que cualquier persona pueda usar Ambi
 > con su TV y sus luces, sean de la marca que sean, y que sumar una marca nueva sea escribir un *driver*
 > sin tocar el resto de la app.
 
@@ -107,7 +108,7 @@ La migración desde v1 convierte las secciones `tv` y `light` en dos entradas de
 
 ## Plan por etapas
 
-1. **Modelo de capacidades y registro de drivers** en el dominio/aplicación; Samsung y WiZ pasan a ser drivers
+1. ✅ **Modelo de capacidades y registro de drivers** en el dominio/aplicación; Samsung y WiZ pasan a ser drivers
    (sin cambios visibles para quien ya usa Ambi).
 2. **UI guiada por capacidades** y entradas con nombre editable (adiós a PS5/Switch fijos).
 3. **Asistente de inicio** con descubrimiento y emparejamiento por driver.

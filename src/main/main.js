@@ -6,16 +6,11 @@ const { app, globalShortcut } = require('electron');
 
 const { createLogger } = require('./adapters/logging/logger');
 const { ConfigStore } = require('./adapters/storage/config-store');
-const { SamsungRemote } = require('./adapters/samsung/remote-ws');
-const { SamsungRest } = require('./adapters/samsung/rest');
-const { UpnpVolume } = require('./adapters/samsung/upnp-volume');
-const { wake } = require('./adapters/samsung/wake-on-lan');
-const { discoverSamsungTv } = require('./adapters/samsung/discovery');
 const { SmartThingsClient, REDIRECT_URI } = require('./adapters/smartthings/client');
-const { WizUdp } = require('./adapters/wiz/wiz-udp');
+const { DriverRegistry } = require('./drivers');
 const { CastClient } = require('./adapters/cast/castv2');
 const { SignalingServer, newToken } = require('./adapters/mirror/signaling-server');
-const { localIpFor } = require('./adapters/net/local-ip');
+const { localIpFor, localSubnets } = require('./adapters/net/local-ip');
 const { safeStorageCipher } = require('./adapters/electron/safe-storage-cipher');
 const { ElectronCapture } = require('./adapters/electron/capture-windows');
 const { authorizeInWindow } = require('./adapters/electron/auth-window');
@@ -25,6 +20,7 @@ const { Autostart } = require('./adapters/electron/autostart');
 const { registerIpc } = require('./adapters/electron/ipc');
 
 const { AppState } = require('./application/app-state');
+const { DeviceManager } = require('./application/device-manager');
 const { StatusPoller } = require('./application/status-poller');
 const { TvService } = require('./application/tv-service');
 const { LightService } = require('./application/light-service');
@@ -80,20 +76,18 @@ function boot() {
   const save = () => store.save();
   const state = new AppState();
 
+  // ---------- Dispositivos (cada marca es un driver; ver src/main/drivers)
+  const registry = new DriverRegistry();
+  const devices = new DeviceManager({ config, save, registry, getSubnets: () => localSubnets(), logger: logger.child('dispositivos') });
+  const getTvIp = () => devices.get('tv')?.cast?.host || null;
+  state.set('devices', devices.summary());
+  devices.on('changed', () => state.set('devices', devices.summary()));
+
   // ---------- Adaptadores de salida
-  const getTvIp = () => config.tv.ip;
-  const remote = new SamsungRemote({
-    getIp: getTvIp, getToken: () => config.tv.token,
-    setToken: (t) => { config.tv.token = t; save(); },
-    logger: logger.child('remoto'),
-  });
-  const rest = new SamsungRest({ getIp: getTvIp });
-  const volume = new UpnpVolume({ getIp: getTvIp });
   const smartthings = new SmartThingsClient({
     getState: () => config.smartthings, save,
     getModelHint: () => state.get().tv.device?.model || '',
   });
-  const wiz = new WizUdp({ getState: () => config.light, save, getSubnetHint: getTvIp, logger: logger.child('wiz') });
   const capture = new ElectronCapture({ logger: logger.child('captura') });
   const signaling = new SignalingServer({ viewerHtmlPath: path.join(__dirname, '..', 'capture', 'viewer.html'), logger: logger.child('señalización') });
   const autostart = new Autostart();
@@ -108,14 +102,13 @@ function boot() {
 
   // ---------- Servicios de aplicación
   const tv = new TvService({
-    remote, rest, volume, wake, smartthings, config, save, state,
+    devices, smartthings, inputs: config.inputs, save, state,
     authorize: (url) => authorizeInWindow({ url, redirectUri: REDIRECT_URI, parent: window.win }),
-    discover: discoverSamsungTv,
     logger: logger.child('tv'),
   });
-  const ambient = new AmbientService({ light: wiz, capture, config: config.ambient, save, state, logger: logger.child('ambiente') });
+  const ambient = new AmbientService({ devices, capture, config: config.ambient, save, state, logger: logger.child('ambiente') });
   const light = new LightService({
-    light: wiz, state,
+    devices, state,
     beforeManualChange: () => (ambient.active ? ambient.stop({ restore: false }) : Promise.resolve()),
   });
   const mirror = new MirrorService({
@@ -123,7 +116,7 @@ function boot() {
     createCast: (host) => new CastClient({ host }),
     logger: logger.child('espejo'),
   });
-  const settings = new SettingsService({ config, save, tv, onWindowPrefs: ({ alwaysOnTop }) => window.setAlwaysOnTop(alwaysOnTop) });
+  const settings = new SettingsService({ config, save, devices, onWindowPrefs: ({ alwaysOnTop }) => window.setAlwaysOnTop(alwaysOnTop) });
 
   // Un fallo en una parte (TV o luz) no impide actualizar la otra.
   poller = new StatusPoller({
@@ -160,7 +153,7 @@ function boot() {
   });
 
   registerIpc({
-    services: { tv, light, ambient, mirror, capture },
+    services: { tv, light, ambient, mirror, capture, devices },
     state, settings, windowApi, autostart,
     // Solo la página principal de la ventana principal puede usar la API.
     isTrustedSender: (event) => event.sender === window.win.webContents && event.senderFrame === window.win.webContents.mainFrame,
@@ -172,11 +165,12 @@ function boot() {
   state.on('change', (section) => { if (section === 'remote' && state.get().remote.state === 'connected') refreshSoon(); });
 
   globalShortcut.register('Control+Alt+T', () => window.toggle());
-  remote.connect();
+  devices.get('tv');    // instancia y conecta la TV configurada (si hay)
+  devices.get('light');
   poller.start();
   refreshTray();
 
-  ctx = { window, ambient, mirror, poller, remote, wiz, store, logger };
+  ctx = { window, ambient, mirror, poller, devices, store, logger };
 }
 
 // Al salir con el modo ambiente activo, devolver la luz a como estaba.
@@ -192,8 +186,7 @@ app.on('will-quit', () => {
   if (!ctx) return;
   ctx.poller.stop();
   ctx.mirror.stop();
-  ctx.remote.close();
-  ctx.wiz.close();
+  ctx.devices.close();
   ctx.store.flush();
   ctx.logger.info('Ambi cerrado');
 });

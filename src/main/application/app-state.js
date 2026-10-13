@@ -11,6 +11,7 @@ class AppState extends EventEmitter {
       ambient: { on: false, sourceId: null, error: null },
       mirror: { state: 'idle', detail: '' },
       smartthings: { connected: false, label: null, error: null, needsReauth: false },
+      devices: [], // resumen: [{ id, kind, name, driver, driverName, capabilities }]
       ...initial,
     };
   }
@@ -20,7 +21,8 @@ class AppState extends EventEmitter {
   // Mezcla superficial por sección y avisa solo si algo cambió.
   set(section, patch) {
     const prev = this.value[section];
-    const next = patch === null ? null : (prev && typeof prev === 'object' && typeof patch === 'object' ? { ...prev, ...patch } : patch);
+    const mergeable = prev && typeof prev === 'object' && !Array.isArray(prev) && patch && typeof patch === 'object' && !Array.isArray(patch);
+    const next = mergeable ? { ...prev, ...patch } : patch;
     if (JSON.stringify(prev) === JSON.stringify(next)) return;
     this.value = { ...this.value, [section]: next };
     this.emit('change', section, this.value);

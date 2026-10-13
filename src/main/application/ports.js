@@ -1,41 +1,36 @@
 // Puertos de la aplicación (arquitectura hexagonal).
 //
 // La capa de aplicación (servicios en esta carpeta) solo conoce estos contratos. Los adaptadores en
-// `src/main/adapters/` los implementan contra el mundo real (red, Electron, disco) y `src/main/main.js`
-// los conecta. En los tests se reemplazan por dobles. Este archivo solo documenta: no tiene código.
+// `src/main/adapters/` y los drivers en `src/main/drivers/` los implementan contra el mundo real (red,
+// Electron, disco) y `src/main/main.js` los conecta. En los tests se reemplazan por dobles.
+// Este archivo solo documenta: no tiene código.
 
 /**
- * @typedef {'idle'|'connecting'|'pairing'|'connected'|'denied'|'offline'} RemoteState
+ * Dispositivos: los define el contrato de drivers (ver docs/drivers.md y src/main/drivers/index.js).
+ * Los servicios los obtienen del DeviceManager y usan solo las capacidades que el driver declara.
  *
- * @typedef {object} TvRemotePort  Control remoto por WebSocket (emparejamiento y teclas).
- * @property {() => void} connect
- * @property {() => void} reconnect
- * @property {(code: string, cmd?: 'Click'|'Press'|'Release') => boolean} key
- * @property {RemoteState} state
- * @property {(event: 'state', fn: (s: {state: RemoteState, detail: string}) => void) => void} on
+ * @typedef {object} TvDevice
+ * @property {string} address
+ * @property {() => Promise<{power: 'on'|'standby', device: object}|null>} status
+ * @property {{ toggle: () => Promise<'on'|'off'> }} [power]                       capacidad power
+ * @property {{ get: Function, set: Function, mute: Function }} [volume]          capacidad volume
+ * @property {{ send: (key: string, action?: string) => boolean }} [keys]         capacidad remote-keys
+ * @property {{ supported: string[], status: Function, launch: Function }} [apps] capacidad apps
+ * @property {{ next: () => boolean }} [inputs]                                   capacidad input-cycle
+ * @property {{ host: string }} [cast]                                            capacidad cast-target
+ * @property {import('events').EventEmitter & {state: string}} [connection]       estado del emparejamiento
+ * @property {{ forget: () => void }} [pairing]
  *
- * @typedef {object} TvRestPort  API REST de Tizen.
- * @property {() => Promise<object|null>} info                 GET /api/v2/
- * @property {(appId: string) => Promise<{installed: boolean, visible?: boolean}|null>} appStatus
- * @property {(appId: string) => Promise<boolean>} launchApp
+ * @typedef {object} LightDevice
+ * @property {string} address
+ * @property {() => Promise<{on: boolean, dimming: ?number, temp: ?number, sceneId: number, rgb: ?number[]}|null>} status
+ * @property {(cmd: object) => Promise<boolean>} set      comando normalizado (domain/light.js)
+ * @property {(cmd: object) => void} [stream]             capacidad color-stream (modo ambiente)
  *
- * @typedef {object} TvVolumePort  UPnP RenderingControl.
- * @property {() => Promise<{volume: number, muted: boolean}|null>} getVolume
- * @property {(level: number) => Promise<boolean>} setVolume
- * @property {(muted: boolean) => Promise<boolean>} setMute
- *
- * @typedef {object} WakePort
- * @property {(mac: string, ip: string) => Promise<void>} wake
- *
- * @typedef {object} InputSourcePort  Selección exacta de entrada (SmartThings, nube).
+ * @typedef {object} InputSourcePort  Selección exacta de entrada (SmartThings, nube; complemento de la TV).
  * @property {boolean} connected
  * @property {(source: string) => Promise<void>} setInput
  * @property {() => Promise<{current: string|null}>} getInput
- *
- * @typedef {object} LightPort  Lámpara WiZ.
- * @property {() => Promise<object|null>} getPilot        respuesta cruda de getPilot o null
- * @property {(params: object) => Promise<boolean>} set   con confirmación
- * @property {(params: object) => void} fire               sin esperar respuesta (modo ambiente)
  *
  * @typedef {object} CapturePort  Ventanas ocultas de captura de pantalla.
  * @property {() => Promise<Array<{id: string, name: string}>>} listScreens
@@ -47,7 +42,7 @@
  * @property {() => void} close   detiene la sesión y cierra la conexión
  *
  * @typedef {object} SignalingPort  Señalización WebRTC entre emisor (PC) y visor (TV).
- * @property {(opts: {token: string, viewerIp: string}) => Promise<{viewerUrl: string, senderUrl: string}>} open
+ * @property {(opts: {token: string, viewerIp: string, localIp: string}) => Promise<{viewerUrl: string, senderUrl: string}>} open
  * @property {() => Promise<void>} close
  *
  * @typedef {object} ConfigStorePort

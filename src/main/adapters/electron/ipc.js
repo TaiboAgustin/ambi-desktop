@@ -28,10 +28,11 @@ function registerIpc({ services, state, settings, windowApi, autostart, isTruste
   handle('settings:get', () => settings.publicView());
   handle('settings:set', (patch) => settings.update(V.settingsPatch(patch)));
 
-  handle('tv:key', (code, cmd = 'Click') => {
-    check(V.isKeyCode(code) && V.KEY_COMMANDS.includes(cmd), 'Tecla inválida');
-    return tv.key(code, cmd);
+  handle('tv:key', (key, action = 'click') => {
+    check(V.isRemoteKey(key) && V.isKeyAction(action), 'Tecla inválida');
+    return tv.key(key, action);
   });
+  handle('devices:list', () => services.devices.summary());
   handle('tv:app', (name) => { check(V.isAppName(name), 'App desconocida'); return tv.launchApp(name); });
   handle('tv:input', (target) => { check(V.isInputTarget(target), 'Entrada desconocida'); return tv.selectInput(target); });
   handle('tv:power', () => tv.power());

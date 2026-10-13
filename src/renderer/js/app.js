@@ -56,11 +56,11 @@
 
   // ----- Atajos de teclado (PC → TV / luz)
   const KEYMAP = {
-    ArrowUp: 'KEY_UP', ArrowDown: 'KEY_DOWN', ArrowLeft: 'KEY_LEFT', ArrowRight: 'KEY_RIGHT',
-    Enter: 'KEY_ENTER', Backspace: 'KEY_RETURN', Escape: 'KEY_RETURN',
-    h: 'KEY_HOME', s: 'KEY_SOURCE', i: 'KEY_INFO', PageUp: 'KEY_CHUP', PageDown: 'KEY_CHDOWN',
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    Enter: 'ok', Backspace: 'back', Escape: 'back',
+    h: 'home', s: 'source', i: 'info', PageUp: 'channel-up', PageDown: 'channel-down',
   };
-  const REPEATABLE = /UP|DOWN|LEFT|RIGHT|CH/;
+  const REPEATABLE = new Set(['up', 'down', 'left', 'right', 'channel-up', 'channel-down']);
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && (e.key === '1' || e.key === '2')) { selectTab(e.key === '1' ? 'tv' : 'light'); return; }
     if (settingsView.isOpen() || e.ctrlKey || e.altKey || e.metaKey || isFormField(e.target)) return;
@@ -75,11 +75,11 @@
     if (k === '-') return tvView.nudgeVolume(-1);
     const inputs = { F1: 'ps5', F2: 'switch', F3: 'next' };
     if (inputs[k]) return once(() => run(api.tv.input(inputs[k])));
-    if (/^[0-9]$/.test(k)) return run(api.tv.key(`KEY_${k}`));
+    if (/^[0-9]$/.test(k)) return run(api.tv.key(k));
     const code = KEYMAP[k];
     if (!code) return;
     e.preventDefault();
-    if (e.repeat && !REPEATABLE.test(code)) return;
+    if (e.repeat && !REPEATABLE.has(code)) return;
     run(api.tv.key(code));
     const btn = document.querySelector(`[data-key="${code}"]`);
     if (btn) { btn.classList.add('pressed'); setTimeout(() => btn.classList.remove('pressed'), 120); }

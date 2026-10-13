@@ -171,7 +171,8 @@ src/
 ├── main/
 │   ├── domain/        reglas puras (catálogo, modelo de TV, política HDMI, luz, validación)
 │   ├── application/   casos de uso, estado observable, sondeo, puertos
-│   ├── adapters/      samsung · smartthings · wiz · cast · mirror · storage · electron · net · logging
+│   ├── drivers/       un driver por marca: samsung-tizen · wiz (ver docs/drivers.md)
+│   ├── adapters/      smartthings · cast · mirror · storage · electron · net · logging
 │   └── main.js        raíz de composición
 ├── preload/           puente seguro hacia la interfaz
 ├── renderer/          interfaz (vistas TV, Luz y Ajustes)
@@ -234,7 +235,8 @@ refresh token cifrado que se renueva solo. La entrada se cambia con `setInputSou
 ## 🗺 Hoja de ruta
 
 - [x] v1: TV Samsung, luz WiZ, espejo, modo ambiente, bandeja e instalador.
-- [ ] Modelo de **drivers por capacidades** para sumar cualquier marca ([propuesta](docs/device-agnostic-proposal.md)).
+- [x] Modelo de **drivers por capacidades** para sumar cualquier marca ([guía](docs/drivers.md) · [propuesta](docs/device-agnostic-proposal.md)).
+- [ ] Interfaz que se arma según las capacidades de cada dispositivo y entradas con nombre editable.
 - [ ] Asistente de inicio con descubrimiento de dispositivos.
 - [ ] Varias luces en el modo ambiente.
 - [ ] Nuevas marcas: LG webOS, Philips Hue, Android TV, Roku…
@@ -244,7 +246,7 @@ Historial de cambios en el [CHANGELOG](CHANGELOG.md).
 ## 🤝 Contribuir
 
 Las contribuciones son bienvenidas, sobre todo drivers para otros dispositivos. Leé
-[CONTRIBUTING.md](CONTRIBUTING.md) para empezar.
+[CONTRIBUTING.md](CONTRIBUTING.md) y la [guía de drivers](docs/drivers.md) para empezar.
 
 ## 📄 Licencia
 

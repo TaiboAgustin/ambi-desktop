@@ -1,5 +1,6 @@
 // Validaciones de datos que llegan de la UI o del usuario.
 const { CONSOLES, HDMI_PORTS, MIRROR_QUALITIES, APPS } = require('./catalog');
+const { isRemoteKey, KEY_ACTIONS } = require('./capabilities');
 
 const isIPv4 = (s) => typeof s === 'string'
   && /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/.test(s.trim());
@@ -11,9 +12,8 @@ function normalizeMac(s) {
   return hex.toUpperCase().match(/../g).join(':');
 }
 
-// Teclas del control: solo códigos con el formato de Samsung.
-const isKeyCode = (s) => typeof s === 'string' && /^KEY_[A-Z0-9_]{1,24}$/.test(s);
-const KEY_COMMANDS = ['Click', 'Press', 'Release'];
+// Teclas del control: solo teclas normalizadas (cada driver las traduce a su protocolo).
+const isKeyAction = (s) => KEY_ACTIONS.includes(s);
 
 class ValidationError extends Error {}
 
@@ -49,4 +49,4 @@ const isAppName = (s) => typeof s === 'string' && Object.hasOwn(APPS, s);
 const isInputTarget = (s) => s === 'next' || CONSOLES.includes(s);
 const isScreenId = (s) => typeof s === 'string' && /^screen:[\w:-]{1,64}$/.test(s);
 
-module.exports = { isIPv4, normalizeMac, isKeyCode, KEY_COMMANDS, settingsPatch, isAppName, isInputTarget, isScreenId, ValidationError };
+module.exports = { isIPv4, normalizeMac, isRemoteKey, isKeyAction, settingsPatch, isAppName, isInputTarget, isScreenId, ValidationError };

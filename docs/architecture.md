@@ -30,7 +30,16 @@ apuntan hacia adentro. El dominio no conoce a nadie; la aplicación conoce al do
                          └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-`src/main/main.js` es la **raíz de composición**: el único archivo que conoce todas las piezas, las
+## Drivers de dispositivos
+
+Las marcas son **drivers** (`src/main/drivers/<id>/`): adaptadores de salida empaquetados por marca que
+declaran **capacidades** (`src/main/domain/capabilities.js`: `power`, `volume`, `remote-keys`, `apps`,
+`input-cycle`, `cast-target`, `brightness`, `color`, `color-temp`, `scenes`, `color-stream`).
+`DeviceManager` instancia cada dispositivo de `config.devices` con su driver, descubre equipos cuando
+falta alguno de un tipo y los recrea si cambia su configuración. Los servicios trabajan solo con
+capacidades: no saben de qué marca es la TV o la luz. Guía: [drivers.md](drivers.md).
+
+: el único archivo que conoce todas las piezas, las
 instancia y las conecta. Cambiar un adaptador (por ejemplo, otra marca de lámpara) no toca el dominio ni
 los servicios: se escribe un adaptador que cumpla el mismo puerto.
 
@@ -41,6 +50,7 @@ los servicios: se escribe un adaptador que cumpla el mismo puerto.
 | `src/main/domain/` | Reglas puras: catálogo, modelo de la TV, política de entradas HDMI, reglas de la luz, validación. | nada |
 | `src/main/application/` | Casos de uso, estado observable, planificador de sondeo, puertos. | dominio |
 | `src/main/adapters/` | Implementaciones de puertos (red, nube, Electron, disco, log). | dominio, Node, Electron |
+| `src/main/drivers/` | Un driver por marca (Samsung Tizen, WiZ) + registro con validación del contrato. | dominio, adaptadores de red, Node |
 | `src/main/main.js` | Composición. | todo |
 | `src/preload/` | Puentes `contextBridge` (API mínima y validada hacia la UI). | Electron |
 | `src/renderer/` | Interfaz: vistas TV, luz y ajustes; se dibuja desde el estado que publica el proceso principal. | API del preload |

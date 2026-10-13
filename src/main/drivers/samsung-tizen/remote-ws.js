@@ -4,7 +4,7 @@
 // y ese token evita el aviso después.
 const WebSocket = require('ws');
 const { EventEmitter } = require('events');
-const { nullLogger } = require('../logging/logger');
+const { nullLogger } = require('../../adapters/logging/logger');
 
 // Nombre con el que la PC aparece en la TV (Ajustes → Conexión → Administrador de dispositivos).
 const APP_NAME = Buffer.from('Ambi').toString('base64');
