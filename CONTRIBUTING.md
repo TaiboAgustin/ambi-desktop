@@ -7,8 +7,8 @@ dispositivos en su casa.
 
 1. Leé la [arquitectura](docs/architecture.md): Ambi usa puertos y adaptadores, así que casi todo cambio
    cae en una sola capa.
-2. Si querés sumar una marca nueva, mirá la [propuesta de drivers](docs/device-agnostic-proposal.md) y
-   abrí un *issue* para coordinar.
+2. Si querés sumar una marca nueva, seguí la [guía de drivers](docs/drivers.md) (y la
+   [propuesta](docs/device-agnostic-proposal.md) para el panorama). Abrí un *issue* para coordinar.
 
 ## Entorno
 

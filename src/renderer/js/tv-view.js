@@ -144,7 +144,7 @@
   }
   function nudgeVolume(delta) {
     const s = $('volSlider');
-    if (s.disabled) return run(api.tv.key(delta > 0 ? 'KEY_VOLUP' : 'KEY_VOLDOWN'));
+    if (s.disabled) return run(api.tv.key(delta > 0 ? 'volume-up' : 'volume-down'));
     s.value = Math.min(100, Math.max(0, Number(s.value) + delta));
     paintVolume();
     sendVolume();
@@ -152,7 +152,7 @@
   const toggleMute = () => run(api.tv.mute(!tv.muted));
 
   let playing = true;
-  const playPause = () => { run(api.tv.key(playing ? 'KEY_PAUSE' : 'KEY_PLAY')); playing = !playing; };
+  const playPause = () => { run(api.tv.key(playing ? 'pause' : 'play')); playing = !playing; };
 
   // ----- Espejo
   async function loadScreens(select, selectedId) {

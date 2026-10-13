@@ -1,52 +1,86 @@
 // Configuración persistente en JSON.
 //  - Escritura atómica (archivo temporal + rename) y con debounce: un corte no deja el JSON a medias.
 //  - Si el archivo está corrupto se respalda (config.corrupt-<fecha>.json) en vez de descartarlo.
-//  - Los secretos se guardan cifrados con el `cipher` inyectado (safeStorage/DPAPI en la app).
-//  - Migra el formato plano anterior a v1.
+//  - Los secretos se guardan cifrados con el `cipher` inyectado (safeStorage/DPAPI en la app):
+//    todo lo que esté en `devices[].secrets` y las credenciales de `smartthings`.
+//  - Migra formatos anteriores: v0 (plano, Hub TV) → v1 (secciones tv/light) → v2 (lista de dispositivos).
 const fs = require('fs');
 const path = require('path');
 const { nullLogger } = require('../logging/logger');
 
-const SCHEMA_VERSION = 1;
-const SECRET_PATHS = [['tv', 'token'], ['smartthings', 'clientSecret'], ['smartthings', 'accessToken'], ['smartthings', 'refreshToken']];
+const SCHEMA_VERSION = 2;
+const SMARTTHINGS_SECRETS = ['clientSecret', 'accessToken', 'refreshToken'];
 
 const defaults = () => ({
   schemaVersion: SCHEMA_VERSION,
-  tv: { ip: '', mac: '', token: '' },
+  // Cada dispositivo: { id, kind, driver, name, settings: { address, mac, … }, secrets: { … } }
+  devices: [],
   ui: { alwaysOnTop: true, x: null, y: null },
   inputs: { ps5Hdmi: 2, switchHdmi: 1, lastHdmi: 'ps5', onHdmi: false },
   smartthings: {},
-  light: { mac: '', ip: '' },
   ambient: { sourceId: null, maxDim: 100 },
   mirror: { sourceId: null, audio: true, quality: 'nitido60' },
 });
 
-// Formato plano previo a v1 → secciones.
-function migrate(raw) {
-  if (raw.schemaVersion === SCHEMA_VERSION) return raw;
-  const d = defaults();
+// v0: formato plano de Hub TV → v1.
+function migrateV0(raw) {
   return {
-    ...d,
+    schemaVersion: 1,
     tv: { ip: raw.ip || '', mac: raw.mac || '', token: raw.token || '' },
     ui: { alwaysOnTop: raw.alwaysOnTop ?? true, x: raw.x ?? null, y: raw.y ?? null },
     inputs: {
-      ps5Hdmi: raw.ps5Hdmi ?? d.inputs.ps5Hdmi,
-      switchHdmi: raw.switchHdmi ?? d.inputs.switchHdmi,
-      lastHdmi: raw.lastHdmi || d.inputs.lastHdmi,
+      ps5Hdmi: raw.ps5Hdmi ?? 2,
+      switchHdmi: raw.switchHdmi ?? 1,
+      lastHdmi: raw.lastHdmi || 'ps5',
       onHdmi: ['ps5', 'switch'].includes(raw.lastInput),
     },
     smartthings: raw.st || {},
-    light: raw.light || d.light,
-    ambient: { ...d.ambient, ...(raw.ambient || {}) },
-    mirror: { ...d.mirror, ...(raw.mirror || {}), quality: raw.mirrorQuality || d.mirror.quality },
+    light: raw.light || {},
+    ambient: raw.ambient || {},
+    mirror: { ...(raw.mirror || {}), ...(raw.mirrorQuality ? { quality: raw.mirrorQuality } : {}) },
   };
+}
+
+// v1: secciones fijas `tv` y `light` → v2: lista de dispositivos con su driver.
+function migrateV1(v1) {
+  const { tv = {}, light = {}, ...rest } = v1;
+  const devices = [];
+  if (tv.ip || tv.token) {
+    devices.push({ id: 'tv', kind: 'tv', driver: 'samsung-tizen', name: 'TV', settings: { address: tv.ip || '', mac: tv.mac || '' }, secrets: { token: tv.token || '' } });
+  }
+  if (light.ip || light.mac) {
+    devices.push({ id: 'light', kind: 'light', driver: 'wiz', name: 'Lámpara', settings: { address: light.ip || '', mac: light.mac || '' }, secrets: {} });
+  }
+  return { ...rest, schemaVersion: 2, devices };
+}
+
+function migrate(raw) {
+  let data = raw;
+  if (!data.schemaVersion) data = migrateV0(data);
+  if (data.schemaVersion === 1) data = migrateV1(data);
+  return data;
 }
 
 function mergeDefaults(data) {
   const d = defaults();
   const out = { ...d, ...data };
-  for (const k of Object.keys(d)) if (d[k] && typeof d[k] === 'object') out[k] = { ...d[k], ...(data[k] || {}) };
+  for (const k of Object.keys(d)) {
+    if (Array.isArray(d[k])) out[k] = Array.isArray(data[k]) ? data[k] : d[k];
+    else if (d[k] && typeof d[k] === 'object') out[k] = { ...d[k], ...(data[k] || {}) };
+  }
+  out.devices = out.devices
+    .filter((dev) => dev && typeof dev === 'object' && typeof dev.driver === 'string')
+    .map((dev) => ({ ...dev, settings: { ...(dev.settings || {}) }, secrets: { ...(dev.secrets || {}) } }));
   return out;
+}
+
+// Ubicaciones de secretos dentro de la configuración: [{ obj, key, label }].
+function secretRefs(data) {
+  const refs = SMARTTHINGS_SECRETS.map((key) => ({ obj: data.smartthings, key, label: `smartthings.${key}` }));
+  for (const dev of data.devices || []) {
+    for (const key of Object.keys(dev.secrets || {})) refs.push({ obj: dev.secrets, key, label: `${dev.id}.${key}` });
+  }
+  return refs.filter((r) => r.obj);
 }
 
 class ConfigStore {
@@ -67,11 +101,12 @@ class ConfigStore {
     } catch (e) {
       if (e.code !== 'ENOENT') this.backupCorrupt(e);
     }
-    const migrated = raw ? migrate(raw) : defaults();
+    const migrated = raw && typeof raw === 'object' ? migrate(raw) : defaults();
     this.data = mergeDefaults(migrated);
+    const hadPlain = this.canEncrypt() && secretRefs(this.data).some((r) => typeof r.obj[r.key] === 'string' && r.obj[r.key]);
     this.decryptSecrets();
     // Persistir migración y cifrado de secretos que estaban en texto plano.
-    if (raw && (raw.schemaVersion !== SCHEMA_VERSION || this.hasPlainSecrets(raw))) this.flush();
+    if (raw && (raw.schemaVersion !== SCHEMA_VERSION || hadPlain)) this.flush();
     return this.data;
   }
 
@@ -81,24 +116,19 @@ class ConfigStore {
     this.log.warn(`config.json ilegible; se respaldó en ${path.basename(backup)}`, err.message);
   }
 
-  hasPlainSecrets(raw) {
-    const m = migrate(raw);
-    return this.canEncrypt() && SECRET_PATHS.some(([s, k]) => typeof m[s]?.[k] === 'string' && m[s][k]);
-  }
-
   canEncrypt() {
     try { return !!this.cipher?.available(); } catch { return false; }
   }
 
   decryptSecrets() {
-    for (const [s, k] of SECRET_PATHS) {
-      const v = this.data[s]?.[k];
+    for (const { obj, key, label } of secretRefs(this.data)) {
+      const v = obj[key];
       if (v && typeof v === 'object' && typeof v.$enc === 'string') {
         try {
-          this.data[s][k] = this.cipher.decrypt(v.$enc);
+          obj[key] = this.cipher.decrypt(v.$enc);
         } catch (e) {
-          this.log.warn(`No se pudo descifrar ${s}.${k}; habrá que volver a configurarlo`, e.message);
-          this.data[s][k] = '';
+          this.log.warn(`No se pudo descifrar ${label}; habrá que volver a configurarlo`, e.message);
+          obj[key] = '';
         }
       }
     }
@@ -107,9 +137,8 @@ class ConfigStore {
   serialize() {
     const copy = JSON.parse(JSON.stringify(this.data));
     if (this.canEncrypt()) {
-      for (const [s, k] of SECRET_PATHS) {
-        const v = copy[s]?.[k];
-        if (typeof v === 'string' && v) copy[s][k] = { $enc: this.cipher.encrypt(v) };
+      for (const { obj, key } of secretRefs(copy)) {
+        if (typeof obj[key] === 'string' && obj[key]) obj[key] = { $enc: this.cipher.encrypt(obj[key]) };
       }
     }
     return JSON.stringify(copy, null, 2);

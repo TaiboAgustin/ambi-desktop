@@ -13,9 +13,9 @@ const { request } = require('../src/main/adapters/net/http-client');
 const { localIpFor } = require('../src/main/adapters/net/local-ip');
 const { ConfigStore } = require('../src/main/adapters/storage/config-store');
 const { CastClient, encode, decode, splitFrames } = require('../src/main/adapters/cast/castv2');
-const { WizUdp } = require('../src/main/adapters/wiz/wiz-udp');
+const { WizUdp, discoverWiz } = require('../src/main/drivers/wiz/wiz-udp');
 const { SignalingServer, newToken } = require('../src/main/adapters/mirror/signaling-server');
-const { magicPacket } = require('../src/main/adapters/samsung/wake-on-lan');
+const { magicPacket } = require('../src/main/drivers/samsung-tizen/wake-on-lan');
 const { SmartThingsClient } = require('../src/main/adapters/smartthings/client');
 
 const listen = (server) => new Promise((r) => server.listen(0, '127.0.0.1', () => r(server.address().port)));
@@ -65,13 +65,16 @@ test('ConfigStore: migra el formato anterior y cifra los secretos', () => {
   const cipher = { available: () => true, encrypt: (s) => Buffer.from(`x:${s}`).toString('base64'), decrypt: (b) => Buffer.from(b, 'base64').toString().slice(2) };
   const store = new ConfigStore({ file, cipher });
   const cfg = store.load();
-  assert.equal(cfg.tv.ip, '192.168.1.50');
-  assert.equal(cfg.tv.token, 'secreto-tv');
+  // v0 (Hub TV) → v2: la TV y la luz pasan a ser dispositivos con su driver.
+  const tv = cfg.devices.find((d) => d.kind === 'tv');
+  const light = cfg.devices.find((d) => d.kind === 'light');
+  assert.deepEqual({ driver: tv.driver, address: tv.settings.address, token: tv.secrets.token }, { driver: 'samsung-tizen', address: '192.168.1.50', token: 'secreto-tv' });
+  assert.deepEqual({ driver: light.driver, address: light.settings.address }, { driver: 'wiz', address: '192.168.1.60' });
   assert.equal(cfg.inputs.onHdmi, true);
   assert.equal(cfg.smartthings.refreshToken, 'rt');
   const onDisk = fs.readFileSync(file, 'utf8');
   assert.ok(!onDisk.includes('secreto-tv') && !onDisk.includes('"rt"'), 'los secretos no quedan en texto plano');
-  assert.equal(JSON.parse(onDisk).schemaVersion, 1);
+  assert.equal(JSON.parse(onDisk).schemaVersion, 2);
   // Y se vuelven a leer bien.
   assert.equal(new ConfigStore({ file, cipher }).load().smartthings.clientSecret, 'cs');
 });
@@ -81,7 +84,7 @@ test('ConfigStore: un archivo corrupto se respalda en vez de perderse', () => {
   const file = path.join(dir, 'config.json');
   fs.writeFileSync(file, '{"tv": {"ip": "1.2.3');
   const cfg = new ConfigStore({ file }).load();
-  assert.equal(cfg.tv.ip, '');
+  assert.deepEqual(cfg.devices, []);
   assert.ok(fs.readdirSync(dir).some((f) => f.startsWith('config.corrupt-')));
 });
 
@@ -90,9 +93,9 @@ test('ConfigStore: escritura atómica sin archivo temporal residual', () => {
   const file = path.join(dir, 'config.json');
   const store = new ConfigStore({ file });
   store.load();
-  store.data.tv.ip = '10.0.0.1';
+  store.data.ui.x = 120;
   store.flush();
-  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).tv.ip, '10.0.0.1');
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).ui.x, 120);
   assert.ok(!fs.existsSync(`${file}.tmp`));
 });
 
@@ -102,9 +105,9 @@ test('ConfigStore: si el rename falla con EXDEV (AppData virtualizado) igual gua
   const store = new ConfigStore({ file });
   store.load();
   t.mock.method(fs, 'renameSync', () => { const e = new Error('cross-device'); e.code = 'EXDEV'; throw e; });
-  store.data.tv.ip = '10.0.0.9';
+  store.data.ui.x = 99;
   store.flush();
-  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).tv.ip, '10.0.0.9');
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).ui.x, 99);
   assert.ok(!fs.existsSync(`${file}.tmp`));
 });
 
@@ -133,8 +136,8 @@ test('wiz-udp: getPilot/set contra una lámpara simulada', async () => {
     bulb.send(JSON.stringify({ id: m.id, method: m.method, result }), rinfo.port, rinfo.address);
   });
   const port = await new Promise((r) => bulb.bind(0, '127.0.0.1', () => r(bulb.address().port)));
-  const light = { mac: 'aabbccddeeff', ip: '127.0.0.1' };
-  const wiz = new WizUdp({ getState: () => light, save: () => {}, port });
+  const settings = { mac: 'aabbccddeeff', address: '127.0.0.1' };
+  const wiz = new WizUdp({ settings, save: () => {}, port });
   assert.equal((await wiz.getPilot()).dimming, 50);
   assert.equal(await wiz.set({ state: false }), true);
   wiz.close();
@@ -142,8 +145,8 @@ test('wiz-udp: getPilot/set contra una lámpara simulada', async () => {
 });
 
 test('wiz-udp: un envío fallido no tira el proceso (antes caía por error sin manejar)', async () => {
-  const light = { mac: '', ip: 'host-que-no-existe.invalid' };
-  const wiz = new WizUdp({ getState: () => light, save: () => {} });
+  const settings = { mac: '', address: 'host-que-no-existe.invalid' };
+  const wiz = new WizUdp({ settings, save: () => {} });
   wiz.fire({ state: true });
   assert.equal(await wiz.call('getPilot', {}, 300), null);
   await new Promise((r) => setTimeout(r, 500));

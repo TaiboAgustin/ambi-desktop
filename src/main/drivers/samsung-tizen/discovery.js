@@ -1,7 +1,7 @@
 // Descubrimiento de la TV Samsung en la red local (SSDP) cuando no hay IP configurada.
 // La TV responde como receptor DIAL; se confirma con su API REST (type "Samsung SmartTV").
 const dgram = require('dgram');
-const { request, parseJson } = require('../net/http-client');
+const { request, parseJson } = require('../../adapters/net/http-client');
 
 const SEARCH_TARGETS = ['urn:dial-multiscreen-org:service:dial:1', 'urn:samsung.com:device:RemoteControlReceiver:1'];
 
