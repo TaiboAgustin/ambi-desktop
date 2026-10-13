@@ -1,0 +1,18 @@
+# Dependencias y artefactos de build
+node_modules/
+dist/
+
+# Caché local de electron-builder (ver "Generar el instalador" en el README)
+.cache/
+
+# Logs y temporales
+*.log
+*.tmp
+
+# Fuente pesada solo para regenerar el logo (el resultado está en src/renderer/img/)
+src/assets/brand/disneyplus-source.png
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store

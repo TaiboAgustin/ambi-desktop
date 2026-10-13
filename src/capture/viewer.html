@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ambi · espejo</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    video { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; background: #000; }
+    #msg { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 18px;
+           color: #e7e9ec; font: 600 34px/1.3 "Samsung One", "Segoe UI", sans-serif; background: radial-gradient(circle at 50% 40%, #12204a, #05070d 70%); }
+    #msg small { font-size: 22px; font-weight: 400; color: #8b9099; }
+  </style>
+</head>
+<body>
+  <!-- Visor que corre en la TV (receptor Cast, Chrome 90): recibe la pantalla de la PC por WebRTC.
+       El token de la sesión viene en la URL y se presenta al conectarse a la señalización. -->
+  <video id="v" autoplay playsinline muted></video>
+  <audio id="a" autoplay></audio>
+  <div id="msg"><span id="title">Conectando con la PC…</span><small>Ambi · espejo de pantalla</small></div>
+  <script>
+    var video = document.getElementById('v');
+    var audio = document.getElementById('a');
+    var msg = document.getElementById('msg');
+    var title = document.getElementById('title');
+    var token = new URLSearchParams(location.search).get('t') || '';
+    var pc = null;
+    var statsTimer = null;
+
+    function show(text) { title.textContent = text; msg.style.display = 'flex'; }
+
+    function waitIce(conn) {
+      return new Promise(function (resolve) {
+        if (conn.iceGatheringState === 'complete') return resolve();
+        var t = setTimeout(resolve, 2000);
+        conn.addEventListener('icegatheringstatechange', function () {
+          if (conn.iceGatheringState === 'complete') { clearTimeout(t); resolve(); }
+        });
+      });
+    }
+
+    // Mostrar cada cuadro apenas llega, sin colchón de reproducción.
+    function lowLatency(conn) {
+      conn.getReceivers().forEach(function (r) {
+        try { r.playoutDelayHint = 0; } catch (e) {}
+        try { if ('jitterBufferTarget' in r) r.jitterBufferTarget = 0; } catch (e) {}
+      });
+    }
+
+    // Métricas de decodificación de la TV (se registran con HUB_DEBUG=1 en la PC).
+    function reportStats(conn, ws) {
+      clearInterval(statsTimer);
+      var prev = null;
+      statsTimer = setInterval(function () {
+        if (conn.connectionState === 'closed' || ws.readyState !== 1) { clearInterval(statsTimer); return; }
+        conn.getStats().then(function (report) {
+          var v = null;
+          report.forEach(function (s) { if (s.type === 'inbound-rtp' && (s.kind || s.mediaType) === 'video') v = s; });
+          if (!v) return;
+          var decodeMs = prev && v.framesDecoded > prev.framesDecoded
+            ? Math.round(1000 * (v.totalDecodeTime - prev.totalDecodeTime) / (v.framesDecoded - prev.framesDecoded)) : null;
+          var dropped = prev ? v.framesDropped - prev.framesDropped : null;
+          prev = v;
+          ws.send(JSON.stringify({ type: 'stats', fps: v.framesPerSecond, w: v.frameWidth, h: v.frameHeight, decoder: v.decoderImplementation, decodeMs: decodeMs, dropped: dropped }));
+        }).catch(function () {});
+      }, 2000);
+    }
+
+    function onOffer(ws, sdp) {
+      if (pc) pc.close();
+      var conn = new RTCPeerConnection();
+      pc = conn;
+      // Audio y video llegan en streams separados (sin sincronización labial, que agrega demora).
+      conn.ontrack = function (ev) {
+        var stream = ev.streams[0] || new MediaStream([ev.track]);
+        if (ev.track.kind === 'audio') { audio.srcObject = stream; audio.play().catch(function () {}); return; }
+        video.srcObject = stream;
+        video.play().catch(function () {});
+        msg.style.display = 'none';
+      };
+      conn.onconnectionstatechange = function () {
+        if (conn.connectionState === 'failed' || conn.connectionState === 'disconnected') show('Se perdió la conexión…');
+      };
+      conn.setRemoteDescription({ type: 'offer', sdp: sdp })
+        .then(function () { lowLatency(conn); return conn.createAnswer(); })
+        .then(function (answer) { return conn.setLocalDescription(answer); })
+        .then(function () { return waitIce(conn); })
+        .then(function () {
+          ws.send(JSON.stringify({ type: 'answer', sdp: conn.localDescription.sdp }));
+          reportStats(conn, ws);
+        })
+        .catch(function (e) { show('Error de video: ' + e.message); });
+    }
+
+    function connect() {
+      var ws = new WebSocket('ws://' + location.host + '/signal?role=viewer&t=' + encodeURIComponent(token));
+      ws.onmessage = function (e) {
+        var m;
+        try { m = JSON.parse(e.data); } catch (err) { return; }
+        if (m.type === 'offer' && typeof m.sdp === 'string') onOffer(ws, m.sdp);
+      };
+      ws.onclose = function (e) {
+        if (e.code === 1008) { show('Sesión de espejo vencida'); return; }
+        show('Reconectando con la PC…');
+        setTimeout(connect, 2000);
+      };
+    }
+    connect();
+  </script>
+</body>
+</html>

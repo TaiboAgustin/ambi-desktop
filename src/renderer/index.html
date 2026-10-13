@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <title>Ambi</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="hub">
+    <header class="bar">
+      <span class="brand" id="brandLogo" title="Samsung"></span>
+      <span class="status" id="status"><i></i><b id="statusText">Conectando…</b></span>
+      <div class="win">
+        <button id="btnSettings" title="Ajustes">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+        </button>
+        <button id="btnMin" title="Minimizar"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button id="btnHide" title="Cerrar a la bandeja (Ctrl+Alt+T para volver)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button role="tab" class="tab" data-tab="tv" aria-selected="true" title="TV (Ctrl+1)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>TV
+      </button>
+      <button role="tab" class="tab" data-tab="light" aria-selected="false" title="Luz (Ctrl+2)">
+        <svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/></svg>Luz
+        <i class="tab-dot" id="lightTabDot"></i>
+      </button>
+    </nav>
+
+    <!-- Pestaña TV -->
+    <div class="view" id="view-tv" role="tabpanel">
+      <section class="hero">
+        <div class="tv" id="tv">
+          <div class="screen" id="screen"><span id="screenContent"></span></div>
+          <div class="stand"></div>
+        </div>
+        <div class="identity">
+          <h1 id="tvName">55" QLED</h1>
+          <p class="model" id="tvModel">QN55Q65D</p>
+          <div class="chips" id="tvChips"></div>
+          <p class="now" id="nowText">Buscando la TV…</p>
+        </div>
+        <button class="power" id="btnPower" title="Encender / apagar (P)">
+          <svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 7.2a8 8 0 1 0 11.4 0"/></svg>
+        </button>
+      </section>
+
+      <section class="volume">
+        <button class="icon-btn" id="btnMute" title="Silencio (M)">
+          <svg viewBox="0 0 24 24" id="muteIcon"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+        </button>
+        <input type="range" id="volSlider" min="0" max="100" value="0" aria-label="Volumen" />
+        <output id="volValue">–</output>
+      </section>
+
+      <section>
+        <h2>Entradas</h2>
+        <div class="inputs">
+          <button class="input ps5" data-input="ps5" title="PlayStation 5 (F1)">
+            <span class="logo" data-logo="playstation"></span>
+            <span class="txt"><b>PlayStation 5</b><small id="ps5Port">HDMI 2</small></span>
+          </button>
+          <button class="input switch" data-input="switch" title="Nintendo Switch 2 (F2)">
+            <span class="logo" data-logo="nintendoswitch"></span>
+            <span class="txt"><b>Switch 2</b><small id="switchPort">HDMI 1</small></span>
+          </button>
+          <button class="input tvin" data-input="next" title="Siguiente entrada HDMI (F3). Usalo si el hub quedó en la consola equivocada.">
+            <span class="logo"><svg viewBox="0 0 24 24" class="line"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg></span>
+            <span class="txt"><b>Siguiente</b><small>HDMI</small></span>
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Apps</h2>
+        <div class="apps">
+          <button class="app" data-app="netflix" title="Netflix"><span class="logo" data-logo="netflix"></span></button>
+          <button class="app" data-app="youtube" title="YouTube"><span class="logo" data-logo="youtube"></span></button>
+          <button class="app" data-app="primevideo" title="Prime Video"><span class="logo wide" data-logo="primevideo"></span></button>
+          <button class="app" data-app="disneyplus" title="Disney+"><img class="app-img" src="img/disneyplus.png" alt="Disney+" /></button>
+          <button class="app" data-app="appletv" title="Apple TV"><span class="logo wide" data-logo="appletv"></span></button>
+          <button class="app" data-app="spotify" title="Spotify"><span class="logo" data-logo="spotify"></span></button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Espejar pantalla</h2>
+        <div class="mirror">
+          <select id="mirrorScreen" aria-label="Pantalla a espejar"></select>
+          <label class="mirror-audio" title="Enviar también el sonido de la PC"><input type="checkbox" id="mirrorAudio" checked /> Audio</label>
+          <button id="btnMirror" class="mirror-btn" title="Espejar esta PC en la TV">
+            <svg viewBox="0 0 24 24"><path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M2 12a9 9 0 0 1 8 8"/><path d="M2 16a5 5 0 0 1 4 4"/><path d="M2 20h.01"/></svg>
+            <span id="mirrorLabel">Espejar</span>
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Navegación</h2>
+        <div class="nav">
+          <div class="dpad">
+            <button class="up" data-key="KEY_UP" data-repeat title="Arriba (↑)"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
+            <button class="left" data-key="KEY_LEFT" data-repeat title="Izquierda (←)"><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
+            <button class="ok" data-key="KEY_ENTER" title="OK (Enter)">OK</button>
+            <button class="right" data-key="KEY_RIGHT" data-repeat title="Derecha (→)"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+            <button class="down" data-key="KEY_DOWN" data-repeat title="Abajo (↓)"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+          </div>
+          <div class="keys">
+            <button data-key="KEY_RETURN" title="Volver (Esc)"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span>Volver</span></button>
+            <button data-key="KEY_HOME" title="Inicio (H)"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v11h14V9"/></svg><span>Inicio</span></button>
+            <button data-key="KEY_SOURCE" title="Fuente (S)"><svg viewBox="0 0 24 24"><path d="M3 12h12"/><path d="m11 8 4 4-4 4"/><path d="M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/></svg><span>Fuente</span></button>
+            <button data-key="KEY_MENU" title="Menú de la TV"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menú</span></button>
+            <button id="btnPlayPause" title="Reproducir / pausa (Espacio)"><svg viewBox="0 0 24 24"><path d="M5 5v14l8-7z"/><path d="M16 5v14M20 5v14"/></svg><span>Play</span></button>
+            <button data-key="KEY_CHUP" data-repeat title="Canal + (RePág)"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg><span>Canal</span></button>
+            <button data-key="KEY_CHDOWN" data-repeat title="Canal − (AvPág)"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>Canal</span></button>
+            <button data-key="KEY_INFO" title="Info (I)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span>Info</span></button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Pestaña Luz -->
+    <div class="view light" id="view-light" role="tabpanel" hidden>
+      <section class="hero light-hero" id="lightSection">
+        <div class="bulb" id="lightBulb">
+          <svg viewBox="0 0 100 150" aria-hidden="true">
+            <defs>
+              <radialGradient id="bulbHalo" cx="50%" cy="38%" r="60%">
+                <stop offset="0%" style="stop-color:var(--bulb);stop-opacity:.55"/>
+                <stop offset="100%" style="stop-color:var(--bulb);stop-opacity:0"/>
+              </radialGradient>
+              <radialGradient id="domeShade" cx="38%" cy="30%" r="75%">
+                <stop offset="0%" stop-color="#fff" stop-opacity=".55"/>
+                <stop offset="55%" stop-color="#fff" stop-opacity=".08"/>
+                <stop offset="100%" stop-color="#000" stop-opacity=".18"/>
+              </radialGradient>
+              <linearGradient id="bodyShade" x1="0" x2="1">
+                <stop offset="0%" stop-color="#d9dce1"/><stop offset="35%" stop-color="#ffffff"/><stop offset="70%" stop-color="#f1f2f4"/><stop offset="100%" stop-color="#c9ccd2"/>
+              </linearGradient>
+              <linearGradient id="copper" x1="0" x2="1">
+                <stop offset="0%" stop-color="#a86a4f"/><stop offset="40%" stop-color="#f0c2a6"/><stop offset="70%" stop-color="#d49478"/><stop offset="100%" stop-color="#9a5f46"/>
+              </linearGradient>
+              <linearGradient id="metal" x1="0" x2="1">
+                <stop offset="0%" stop-color="#7d838c"/><stop offset="35%" stop-color="#eef1f4"/><stop offset="65%" stop-color="#b9bec6"/><stop offset="100%" stop-color="#6f757e"/>
+              </linearGradient>
+            </defs>
+            <circle class="bulb-halo" cx="50" cy="46" r="46" fill="url(#bulbHalo)"/>
+            <path class="bulb-dome" d="M50 4C25.7 4 8 21.6 8 44.5c0 14.3 6.6 23.7 13.7 31.5L24 78h52l2.3-2C85.4 68.2 92 58.8 92 44.5 92 21.6 74.3 4 50 4Z"/>
+            <path d="M50 4C25.7 4 8 21.6 8 44.5c0 14.3 6.6 23.7 13.7 31.5L24 78h52l2.3-2C85.4 68.2 92 58.8 92 44.5 92 21.6 74.3 4 50 4Z" fill="url(#domeShade)"/>
+            <path d="M24 77c2.4 9.6 5.6 18.6 6.8 30h38.4c1.2-11.4 4.4-20.4 6.8-30Z" fill="url(#bodyShade)"/>
+            <g id="bulbBrand"></g>
+            <path d="M30.6 104h38.8l-.3 7H30.9Z" fill="url(#copper)"/>
+            <path d="M33 111h34v22a4 4 0 0 1-4 4H37a4 4 0 0 1-4-4Z" fill="url(#metal)"/>
+            <path d="M33 116.5 67 114M33 122.5 67 120M33 128.5 67 126M33.6 134 66.4 132" stroke="#6a7079" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>
+            <path d="M41 137h18l-2.5 6.5a3 3 0 0 1-2.8 1.9h-7.4a3 3 0 0 1-2.8-1.9Z" fill="#3a3e45"/>
+          </svg>
+        </div>
+        <div class="identity">
+          <h1>Lámpara</h1>
+          <p class="model">Philips WiZ · Full Color E27</p>
+          <div class="chips"><span class="chip wiz" id="wizChip" title="WiZ Connected"></span><span class="chip">8 W · 806 lm</span><span class="chip">2200–6500 K</span></div>
+          <p class="now" id="lightSub">Buscando la luz…</p>
+        </div>
+        <button class="power light-power" id="btnLight" title="Encender / apagar la luz (L)">
+          <svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 7.2a8 8 0 1 0 11.4 0"/></svg>
+        </button>
+      </section>
+
+      <section class="light-controls">
+        <div class="light-row">
+          <span class="dim-label" id="dimLabel" hidden>Máx.</span>
+          <svg viewBox="0 0 24 24" class="dim-icon"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <input type="range" id="lightDim" min="10" max="100" value="100" aria-label="Brillo de la luz" />
+          <output id="lightDimVal">–</output>
+        </div>
+      </section>
+
+      <section class="ambient-box" id="ambientBox">
+        <div class="ambient-row">
+          <span class="ambient-icon"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 8h4M6 11h7" opacity=".6"/></svg></span>
+          <div class="ambient-text"><b>Modo ambiente</b><small id="ambientHint">La luz sigue los colores de la pantalla de la PC</small></div>
+          <button class="toggle" id="ambientToggle" role="switch" aria-checked="false" title="Activar / desactivar el modo ambiente (A)"><i></i></button>
+        </div>
+        <select id="ambientScreen" aria-label="Pantalla a seguir"></select>
+      </section>
+
+      <section class="light-controls manual">
+        <h2>Blancos</h2>
+        <div class="whites">
+          <button class="sw tile" data-temp="2200" style="--c:#ffad55" title="Cálida · 2200 K"><span>Cálida</span><small>2200 K</small></button>
+          <button class="sw tile" data-temp="2700" style="--c:#ffcf94" title="Blanco cálido · 2700 K"><span>Cálido</span><small>2700 K</small></button>
+          <button class="sw tile" data-temp="4000" style="--c:#fff0da" title="Neutra · 4000 K"><span>Neutra</span><small>4000 K</small></button>
+          <button class="sw tile" data-temp="6500" style="--c:#dde8ff" title="Fría · 6500 K"><span>Fría</span><small>6500 K</small></button>
+        </div>
+      </section>
+
+      <section class="light-controls manual">
+        <h2>Colores</h2>
+        <div class="colors">
+          <button class="sw" data-rgb="255,0,0" style="--c:#ff2a2a" title="Rojo"></button>
+          <button class="sw" data-rgb="255,90,0" style="--c:#ff7a1a" title="Naranja"></button>
+          <button class="sw" data-rgb="255,190,0" style="--c:#ffc21a" title="Amarillo"></button>
+          <button class="sw" data-rgb="0,255,60" style="--c:#2bd96b" title="Verde"></button>
+          <button class="sw" data-rgb="0,200,255" style="--c:#1ec8ff" title="Celeste"></button>
+          <button class="sw" data-rgb="0,70,255" style="--c:#2f6bff" title="Azul"></button>
+          <button class="sw" data-rgb="140,0,255" style="--c:#9b3dff" title="Violeta"></button>
+          <button class="sw" data-rgb="255,0,140" style="--c:#ff2d9b" title="Rosa"></button>
+          <label class="sw custom" title="Elegir otro color"><input type="color" id="lightColor" value="#00c8ff" /></label>
+        </div>
+      </section>
+
+      <section class="light-controls manual">
+        <h2>Escenas</h2>
+        <div class="scenes">
+          <button data-scene="18" title="Escena TV">📺<span>TV</span></button>
+          <button data-scene="4" title="Fiesta">🎉<span>Fiesta</span></button>
+          <button data-scene="3" title="Atardecer">🌅<span>Atardecer</span></button>
+          <button data-scene="16" title="Relax">🛋️<span>Relax</span></button>
+          <button data-scene="29" title="Luz de velas">🕯️<span>Velas</span></button>
+          <button data-scene="14" title="Luz nocturna">🌙<span>Noche</span></button>
+          <button data-scene="1" title="Océano">🌊<span>Océano</span></button>
+          <button data-scene="5" title="Chimenea">🔥<span>Chimenea</span></button>
+          <button data-scene="15" title="Concentración">🎯<span>Foco</span></button>
+        </div>
+      </section>
+    </div>
+
+    <div class="settings" id="settings" hidden>
+      <h2>Ajustes</h2>
+      <label>IP de la TV<input id="cfgIp" spellcheck="false" /></label>
+      <label>MAC Wi-Fi (para encender)<input id="cfgMac" spellcheck="false" /></label>
+      <div class="ports">
+        <label>PS5 en<select id="cfgPs5"><option value="1">HDMI 1</option><option value="2">HDMI 2</option><option value="3">HDMI 3</option><option value="4">HDMI 4</option></select></label>
+        <label>Switch 2 en<select id="cfgSwitch"><option value="1">HDMI 1</option><option value="2">HDMI 2</option><option value="3">HDMI 3</option><option value="4">HDMI 4</option></select></label>
+      </div>
+
+      <label>Calidad del espejo<select id="cfgQuality"><option value="nitido60">1080p · 60 fps (recomendado)</option><option value="nitido">1080p · 30 fps</option><option value="fluido60">720p · 60 fps (menor demora)</option><option value="fluido">720p · 30 fps</option></select></label>
+
+      <div class="st-box">
+        <h3>SmartThings <span class="badge" id="stBadge">No conectado</span></h3>
+        <p class="hint">Necesario para elegir el HDMI exacto: la TV no lo permite por la red local.</p>
+        <div id="stSetup">
+          <ol class="steps">
+            <li><button class="inline" id="stOpenTokens">Abrí la página de tokens</button>, iniciá sesión y generá un token nuevo con todos los permisos de <b>Apps</b> y <b>Dispositivos</b>.</li>
+            <li>Pegalo acá y aprobá el acceso en la ventana que se abre.</li>
+          </ol>
+          <div class="st-row">
+            <input id="stPat" type="password" placeholder="Token de SmartThings" spellcheck="false" />
+            <button id="stConnect">Conectar</button>
+          </div>
+        </div>
+        <div id="stDone" hidden>
+          <p class="hint">Conectado a <b id="stLabel"></b>. Los botones de consola usan el HDMI exacto.</p>
+          <button id="stDisconnect" class="link">Desconectar SmartThings</button>
+        </div>
+        <p class="hint err" id="stError"></p>
+      </div>
+
+      <label class="check"><input type="checkbox" id="cfgTop" /> Siempre visible</label>
+      <label class="check"><input type="checkbox" id="cfgAutostart" /> Iniciar con Windows (en la bandeja)</label>
+      <p class="hint" id="cfgPaired"></p>
+      <div class="actions">
+        <button id="cfgForget" class="ghost">Volver a emparejar</button>
+        <button id="cfgSave">Guardar</button>
+      </div>
+      <button id="cfgQuit" class="link">Salir de la app</button>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+  <script src="logos.js"></script>
+  <script src="brand-logos.js"></script>
+  <script src="js/dom.js"></script>
+  <script src="js/tv-view.js"></script>
+  <script src="js/light-view.js"></script>
+  <script src="js/settings-view.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

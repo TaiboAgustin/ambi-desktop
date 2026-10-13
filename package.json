@@ -1,0 +1,79 @@
+{
+  "name": "ambi",
+  "productName": "Ambi",
+  "version": "1.0.0",
+  "description": "Ambi: hub de escritorio para la TV Samsung y la luz Philips WiZ",
+  "author": "Agus Taibo",
+  "license": "MIT",
+  "main": "src/main/main.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test --test-concurrency=1 \"test/*.test.js\"",
+    "check": "node scripts/check-syntax.js",
+    "icon": "node scripts/build-icon.js",
+    "logos": "node scripts/build-logos.js && node scripts/build-brand-logos.js && electron scripts/build-disney-logo.js",
+    "dist": "npm test && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "electron": "44.7.1",
+    "electron-builder": "26.15.3",
+    "simple-icons": "13.21.0"
+  },
+  "allowScripts": {
+    "electron@44.7.1": true
+  },
+  "build": {
+    "appId": "ar.local.ambi",
+    "productName": "Ambi",
+    "copyright": "Copyright © 2026 Agus Taibo",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "!src/assets/brand/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ambi",
+      "runAfterFinish": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "uninstallDisplayName": "Ambi",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Ambi-Setup-${version}.${ext}"
+    },
+    "electronDist": "node_modules/electron/dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TaiboAgustin/ambi-desktop.git"
+  },
+  "homepage": "https://github.com/TaiboAgustin/ambi-desktop#readme",
+  "bugs": {
+    "url": "https://github.com/TaiboAgustin/ambi-desktop/issues"
+  }
+}
